@@ -11,6 +11,7 @@
 #include <ctype.h>
 #include <errno.h>
 
+
 char resolved_path[PATH_MAX];
 
 void call_realpath (char * argv0)
@@ -72,27 +73,53 @@ char* getFullPath(char* fname, char* path)
     return fullPath;
 }
 
+
 int getWordCount(char* fname)
 {
-    FILE* f;
-    f = fopen(fname, "r");
+    int CHUNK = SHRT_MAX;
+    char buf[CHUNK];
 
+    FILE *file;
+    size_t nread;
+
+    file = fopen(fname, "r");
+    
     int tot_words = 0;  
     int in_space = 1;
-    int c, last = '\n';
+    
+    if (file) 
+    {
+        while ((nread = fread(buf, 1, CHUNK, file)) > 0)
+        {
+            for(int i = 0; i < nread; i++)
+            {      
+                if (isspace(buf[i])) 
+                {
+                    in_space = 1;
+                } 
+                else 
+                {
+                    tot_words += in_space;
+                    in_space = 0;
+                }
 
-    while ((c = fgetc(f)) != EOF) {
-        last = c;
-        if (isspace(c)) {
-            in_space = 1;
-        } else {
-            tot_words += in_space;
-            in_space = 0;
+            }
         }
-    }
-  
-    fclose(f);
-    return tot_words;
+        if (ferror(file)) 
+        {
+            fprintf (stderr, "%s: fread() error: %s\n", resolved_path, strerror(errno));
+            exit(1);
+        }
+
+        fclose(file);
+        return tot_words;
+    } 
+    else
+    {
+        
+        fprintf (stderr, "%s: fopen() error: %s\n", resolved_path, strerror(errno));
+        exit(1);    
+    } 
 }
 
 
