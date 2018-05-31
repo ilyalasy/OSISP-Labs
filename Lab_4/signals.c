@@ -8,6 +8,7 @@
 #include <string.h>
 #include <math.h>
 #include <inttypes.h>
+#include <errno.h>
 
 /*             0
                |
@@ -31,22 +32,43 @@ pid_t pid7;
 pid_t pid8;
 
 
-long long get_current_time()
+char resolved_path[1024];
+
+void call_realpath (char * argv0)
+{ 
+    if (realpath (argv0, resolved_path) == 0) 
+    { 
+	    fprintf (stderr, "realpath() error: %s\n", strerror (errno));
+        exit(1);
+    }
+}
+
+
+int get_current_time()
 {
     struct timeval te; 
-    gettimeofday(&te, NULL); // get current time
-    long long milliseconds = te.tv_sec*1000LL + te.tv_usec/1000; // calculate milliseconds
-    return milliseconds;
+    gettimeofday(&te, NULL); 
+    return te.tv_usec/1000;
 }
 
 void write_pid(int num, pid_t pid){
     FILE* f = fopen(pids,"a");
+    if (f == NULL)
+    {
+        fprintf(stderr, "%s: fopen() error: %s\n", resolved_path, strerror(errno));
+        exit(1);
+    }
     fprintf(f, "%d %d\n", num, pid);
     fclose(f);
 }
 
 int all_proccesses_exist(){
     FILE * fp = fopen(pids,"r");
+    if (fp == NULL)
+    {
+        fprintf(stderr, "%s: fopen() error: %s\n", resolved_path, strerror(errno));
+        exit(1);
+    }
     int lines = 0;
     int ch;
     while(!feof(fp))
@@ -63,6 +85,11 @@ int all_proccesses_exist(){
 
 void read_pid(int num, int *pid){
     FILE* f = fopen(pids, "r");
+    if (f == NULL)
+    {
+        fprintf(stderr, "%s: fopen() error: %s\n", resolved_path, strerror(errno));
+        exit(1);
+    }
     int curr_num, curr_pid;
     while (fscanf(f, "%d %d\n",&curr_num, &curr_pid) != EOF){
         if(curr_num == num){
@@ -122,7 +149,7 @@ void print_info(int num, int get, int usr){
         strcpy(curr_usr, "USR2");
 
     strcat(got_sent_info, curr_usr);
-    printf("%d %d %d %s %lld\n", num, getpid(),getppid(), got_sent_info, get_current_time());
+    printf("%d %d %d %s %d\n", num, getpid(),getppid(), got_sent_info, get_current_time());
 }
 
 void print_term_info(int usr1, int usr2){
@@ -153,7 +180,7 @@ int sent_signals2 = 0;
 void handle_pr2(int signo){
     if(signo == SIGUSR2){
         print_info(2,0,1);
-        kill(-get_pid(3),SIGUSR1);
+        kill(-get_pid(3),SIGUSR1);  
         sent_signals2++;
     }
     if (signo == SIGTERM){
@@ -214,8 +241,6 @@ int sent_signals6 = 0;
 void handle_pr6(int signo){
     if(signo == SIGUSR1){
         print_info(6,0,0);
-        kill(get_pid(3), SIGUSR1);
-        sent_signals6++;
     }
     if (signo == SIGTERM){
         kill(get_pid(7), SIGTERM);
@@ -229,8 +254,6 @@ int sent_signals7 = 0;
 void handle_pr7(int signo){
     if(signo == SIGUSR1){
         print_info(7,0,0);
-        kill(get_pid(5), SIGUSR1);
-        sent_signals7++;
     }
     if (signo == SIGTERM){
         kill(get_pid(8), SIGTERM);
@@ -396,8 +419,16 @@ void create_process_tree(){
 
 int main(int args, char **argv)
 {   
+    call_realpath(argv[0]);
+
     FILE* f = fopen(pids, "w");
+    if (f == NULL)
+    {
+        fprintf(stderr, "%s: fopen() error: %s\n", resolved_path, strerror(errno));
+        exit(1);
+    }
     fclose(f);
+    
 
     create_process_tree();
 
