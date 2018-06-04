@@ -43,7 +43,6 @@ void call_realpath (char * argv0)
     }
 }
 
-
 int get_current_time()
 {
     struct timeval te; 
@@ -136,7 +135,6 @@ int get_pid(int num){
 }
 
 void print_info(int num, int get, int usr){
-    //printf("%d %d %d %d %d %d %d %d\n",pid1,pid2,pid3,pid4,pid5,pid6,pid7,pid8);
     char got_sent_info[50], curr_usr[50];
     if (get == 0){
         strcpy(got_sent_info,"got ");
@@ -321,7 +319,6 @@ void create_process_tree(){
             pid2 = getpid();
             write_pid(2, pid2);
             printf("2 %d %d %d\n", getpid(), getppid(), getpgrp());
-            
             while(1);
         }
 
@@ -358,7 +355,6 @@ void create_process_tree(){
 
         //5
         if (fork() == 0){
-
             sigaction(SIGUSR1,  &act5, 0);
             sigaction(SIGTERM, &act5, 0);
 
@@ -412,8 +408,6 @@ void create_process_tree(){
              while(1);
         }
         while(!all_proccesses_exist());
-        printf("created!!!\n");
-        fflush(0);
     }
 }
 
@@ -429,11 +423,11 @@ int main(int args, char **argv)
     }
     fclose(f);
     
-
     create_process_tree();
 
     if (getpid() == get_pid(1)) {
         kill(get_pid(2), SIGUSR2);
+        
         while(1);
     }else{
         int status;
